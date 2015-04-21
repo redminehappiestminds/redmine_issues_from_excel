@@ -1,0 +1,4 @@
+<% if User.current.allowed_to?({:controller =>"import_from_excel" , :action => "index"}, @project, :global =>false)%>
+  <p><%= link_to l(:Import_label), import_from_excel_index_path(:project_id=>@project.identifier) %></p>
+<%end%>
+

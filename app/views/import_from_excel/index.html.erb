@@ -1,0 +1,42 @@
+
+<%= form_for :dump, :url=>excel_import_import_from_excel_index_path,
+:html => { :multipart => true,:id=>"my-form" } do |f| %>
+<input type="hidden" name="project_id" value="<%= @project.id%>" />
+<fieldset>
+    <p>
+        <label for="dump_file"><h2>Select a Excel File :</h2>
+            <b><%=l(:field_notes)%> : </b> <br>
+            <%= l(:required_format)%>          <br>  
+            <%= l(:xlsx_note)%><br>
+            <h4 style="border-bottom:none"><%= l(:format_hint)%> <%=Setting["plugin_redmine_issues_from_excel"]['max_row_to_read']%></h4>
+         </label>
+    </p>
+    <p>
+        <%= f.file_field :file %> As:
+        <%= f.select :tracker_id,
+          @project.trackers.collect {|t| [t.name, t.id]},{:selected=>''},{:onchange=>"setSampleFile()"}%>            
+                
+              <%= link_to "Sample Excel",{
+                :controller => 'import_from_excel', :action => 'download_sample',
+                :project_id => @project.identifier,:filename => 'ActionItem.xlsx',:format => "xlsx" },:id=> 'sample_xlsx'%>               
+               
+    </p>
+    <p>
+        <%= submit_tag 'Import' %>
+    </p>
+</fieldset>
+<% end %>
+    <script>   
+        var filename = "download_sample.xlsx";        
+        
+        function setSampleFile(){                      
+             $("#sample_xlsx").attr("href","import_from_excel/"+filename+"?tracker="+$("#dump_tracker_id").val());
+        }
+        setSampleFile();
+        if($("#dump_tracker_id").val() == null)
+        {
+            $("#sample_xlsx").hide();
+        }
+    </script>
+
+  

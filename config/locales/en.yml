@@ -1,0 +1,8 @@
+# English strings go here for Rails i18n
+en:
+  Import_label: "Import issues from Excel"
+  error_bad_excel_format: "Bad file format, Please consider the given sample excel format  "
+  required_format: "Please refer the sample Excel file for format. "
+  format_hint: "The first line in the file will be ignored. File should not have more than "
+  xlsx_note: Download the excel file using 'sample excel'. Add the issues in that and upload file. 
+  max_row_to_read: Maximum Excel Rows to read
