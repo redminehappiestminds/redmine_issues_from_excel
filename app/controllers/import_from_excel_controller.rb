@@ -18,16 +18,16 @@ class ImportFromExcelController < ApplicationController
     wb = p.workbook  
     green_cell =  wb.styles.add_style(:bg_color => "008000", :fg_color => "FF", :sz => 10, :alignment => { :horizontal=> :center },:wrap_text => true)
     white_cell =  wb.styles.add_style(:fg_color => "FF", :sz => 20, :alignment => { :horizontal=> :center },:wrap_text => true)
-    heading = ['Subject','Description','Estimation Time(hrs)']    
+    heading = ['Subject','Description','Estimation Time(hrs)', 'Start Date (yyyy-mm-dd)','Due Date (yyyy-mm-dd)']    
     list = []
     non_list = []
     data =[]
      if @custom_field_values.size > 0   
      @custom_field_values.each do |value| 
-        if value.custom_field.is_required? and value.custom_field.field_format != 'list'
+        if value.custom_field.is_required? and value.custom_field.field_format != 'list'        
           non_list.push(value.custom_field.name)
         end
-        if value.custom_field.is_required? and value.custom_field.field_format == 'list'
+        if value.custom_field.is_required? and value.custom_field.field_format == 'list'          
           list.push(value.custom_field.name)
           data +=value.custom_field.possible_values                   
         end
@@ -41,8 +41,8 @@ class ImportFromExcelController < ApplicationController
         
       if @custom_field_values.size > 0   
      @custom_field_values.each do |value|       
-        if value.custom_field.is_required? and value.custom_field.field_format == 'list'
-          data_list = value.custom_field.possible_values         
+        if value.custom_field.is_required? and value.custom_field.field_format == 'list'        
+          data_list = value.custom_field.possible_values                   
           sheet.add_data_validation("#{Axlsx::cell_r(column,1)}:#{Axlsx::cell_r(column,100)}", {
           :type => :list,
           :formula1 => '"'+data_list.join(",")+'"',
@@ -96,24 +96,27 @@ class ImportFromExcelController < ApplicationController
     end
     subject=col[0]
     description=col[1];estimated_hrs=col[2]
+    start_date=col[3];due_date=col[4]
     issue = Issue.new
     issue.project = @project
     issue.author = User.current
     issue.tracker = tracker    
     issue.subject = subject
     issue.description = description
+    issue.start_date= start_date
+    issue.due_date=due_date
     issue.estimated_hours=estimated_hrs.to_f  unless estimated_hrs.blank?
     custom_field_hash = Hash.new
     if @custom_field_values.size > 0
-      count = 2
+      count = 4
       @custom_field_values.each do |value|
-        if value.custom_field.is_required? and value.custom_field.field_format != 'list'
+        if value.custom_field.is_required? and value.custom_field.field_format != 'list'        
           count = count +1
           custom_field_hash[value.custom_field.id] = col[count]
         end
       end
        @custom_field_values.each do |value|
-        if value.custom_field.is_required? and value.custom_field.field_format == 'list'
+        if value.custom_field.is_required? and value.custom_field.field_format == 'list'        
           count = count +1
           custom_field_hash[value.custom_field.id] = col[count]
         end
@@ -138,10 +141,11 @@ class ImportFromExcelController < ApplicationController
       error = 'Please, Select Excel file'
       redirect_with_error error, @project    
     else
-      begin
+      begin        
         done = 0;total = 0
         max_row_to_read = Setting["plugin_redmine_issues_from_excel"]['max_row_to_read']
         error_messages = []
+        Rails.cache.write("error_messages",[])
         tracker = @project.trackers.find(params[:dump][:tracker_id])
         spreadsheet = open_spreadsheet(params[:dump][:file])
         spreadsheet.default_sheet = spreadsheet.sheets.first 
@@ -164,13 +168,19 @@ class ImportFromExcelController < ApplicationController
             if issue.has_attribute? 'text_id'
               duplicate_issue = Issue.all(:conditions => "project_id = #{@project.id}")
               if duplicate_issue.blank?
-                error_messages << "Line:#{index+1}..Error: #{issue.errors.full_messages.uniq.join(', ')}"
+                msg = Rails.cache.read("error_messages") << "Line:#{index+1}..Error: #{issue.errors.full_messages.uniq.join(', ')}"
+              
+                Rails.cache.write("error_messages", msg )
               else
                 i_id = duplicate_issue.first.id
-                error_messages << "Line:#{index+1}..Error: #{issue.errors.full_messages.uniq.join(', ')} for this issue <a href=\"/issues/#{i_id}\">##{i_id}</a>"
+                msg = Rails.cache.read("error_messages") <<  "Line:#{index+1}..Error: #{issue.errors.full_messages.uniq.join(', ')} for this issue <a href=\"/issues/#{i_id}\">##{i_id}</a>"
+              
+                Rails.cache.write("error_messages", msg )
               end
             else
-              error_messages << "Line:#{index+1}..Error: #{issue.errors.full_messages.uniq.join(', ')}"
+              msg = Rails.cache.read("error_messages") <<  "Line:#{index+1}..Error: #{issue.errors.full_messages.uniq.join(', ')}"
+              
+              Rails.cache.write("error_messages", msg)
             end
           end
         end
@@ -181,7 +191,10 @@ class ImportFromExcelController < ApplicationController
       if done == total        
         flash[:notice]="Excel Import Successful, #{done} new issues have been created"
       else        
-        flash[:error]=format_error(done,total,error_messages)
+        errors = Rails.cache.read("error_messages")        
+        Rails.cache.write("error_messages", format_error(done,total,errors))        
+        redirect_to :controller=>"import_from_excel",:action=>"index",:project_id=>@project.identifier
+        return
       end      
       redirect_to :controller=>"issues",:action=>"index",:project_id=>@project.identifier
     end

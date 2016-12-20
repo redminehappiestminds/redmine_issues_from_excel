@@ -1,4 +1,5 @@
 module ImportFromExcelHelper
+  
   def format_error(done,total,error_messages)
     final_message=""
     final_message=%{#{done} out of #{total} new issues have been created}

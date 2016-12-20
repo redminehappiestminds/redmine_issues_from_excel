@@ -1,4 +1,4 @@
-# Import from Excel
+# Import Issues from Excel
 
 Redmine_import_from_Excel is a Redmine plugin to add the feature of importing issues From an Excel file.
 For a team member with add issue permission, it shows a link 'Import issues from Excel' to the right on issues page.
@@ -6,11 +6,11 @@ This link redirects user to select excel file page.
 
 ## Installation
 
-* Compatible with redmine 2.6.0 and Rails 3.
+* Compatible with redmine 3 and Rails 4.
 * Clons the plugin into the plugins directory
 
   ```
-    cd redmine-2.6.0
+    cd redmine
     cd plugins/
     git clone git://github.com/redminehappiestminds/redmine_issues_from_excel.git
   ```
